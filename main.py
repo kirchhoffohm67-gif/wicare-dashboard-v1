@@ -1,16 +1,12 @@
-# This is a sample Python script.
+import serial
 
-# Press Mayús+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+PUERTO = "COM3"  # cambia esto por tu numero de COM real
+BAUD = 115200
 
+ser = serial.Serial(PUERTO, BAUD, timeout=1)
+print(f"Conectado a {PUERTO}")
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+while True:
+    linea = ser.readline().decode("utf-8", errors="ignore").strip()
+    if linea:
+        print(linea)
