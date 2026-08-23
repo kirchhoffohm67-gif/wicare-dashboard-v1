@@ -6,10 +6,10 @@ import sys
 import time
 
 # ---- Configuracion ----
-PUERTO = "COM3"  # cambia esto por tu puerto COM real
+PUERTO = "COM3"
 BAUD = 115200
-ANCHO, ALTO = 1300, 750
-ANCHO_RADAR = 850
+ANCHO, ALTO = 1000, 600
+ANCHO_RADAR = 650
 ESCALA = 0.2
 CENTRO_X, CENTRO_Y = ANCHO_RADAR // 2, 150
 TIEMPO_EXPIRACION_MS = 800
@@ -20,7 +20,6 @@ INTERVALO_RECONEXION_MS = 2000
 
 patron_posicion = re.compile(r"Obj (\d+) -> X=(-?\d+)\s+mm Y=(-?\d+)\s+mm V=(-?\d+\.?\d*)\s+cm/s")
 
-# ---- Pygame ----
 pygame.init()
 pantalla = pygame.display.set_mode((ANCHO, ALTO))
 pygame.display.set_caption("Wi-Care - Dashboard en vivo")
@@ -43,7 +42,6 @@ GRIS_LOG = (0, 255, 90)
 FONDO_LOG = (5, 12, 8)
 FONDO_HEADER = (18, 18, 26)
 
-# ---- Logo ----
 try:
     logo_original = pygame.image.load("logo.png").convert_alpha()
     alto_logo = 44
@@ -54,17 +52,19 @@ except Exception as e:
     logo = None
     print(f"No se pudo cargar el logo: {e}")
 
-# ---- Estado del sistema ----
 objetivos = {}
 alerta_activa = False
 tiempo_ultima_alerta = 0
 confirmando_caida = False
 log_lineas = []
 
-# ---- Estado de conexion ----
 ser = None
 conectado = False
 ultimo_intento_conexion = 0
+
+
+def limpiar_texto(texto):
+    return "".join(c for c in texto if c.isprintable())
 
 
 def intentar_conectar():
@@ -143,9 +143,16 @@ def dibujar_panel_log():
 
     y = 46
     for linea in log_lineas[-MAX_LINEAS_LOG:]:
-        color = ROJO if ("ALERTA" in linea) else (AMARILLO if "BURST" in linea or "confirmacion" in linea else GRIS_LOG)
-        superficie = fuente_log.render(linea[:60], True, color)
-        pantalla.blit(superficie, (x0 + 10, y))
+        try:
+            texto_limpio = limpiar_texto(linea)[:60]
+            if not texto_limpio:
+                y += 18
+                continue
+            color = ROJO if ("ALERTA" in texto_limpio) else (AMARILLO if "BURST" in texto_limpio or "confirmacion" in texto_limpio else GRIS_LOG)
+            superficie = fuente_log.render(texto_limpio, True, color)
+            pantalla.blit(superficie, (x0 + 10, y))
+        except Exception:
+            pass
         y += 18
 
 
@@ -158,7 +165,10 @@ def leer_serial():
     ahora = pygame.time.get_ticks()
     try:
         while ser.in_waiting:
-            linea = ser.readline().decode("utf-8", errors="ignore").strip()
+            linea_cruda = ser.readline().decode("utf-8", errors="ignore").strip()
+            if not linea_cruda:
+                continue
+            linea = limpiar_texto(linea_cruda)
             if not linea:
                 continue
 
@@ -247,4 +257,4 @@ while corriendo:
 pygame.quit()
 if ser:
     ser.close()
-sys.exit()
+sys.exit() 
